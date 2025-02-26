@@ -1,0 +1,83 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+model User {
+  id            Int      @id @default(autoincrement())
+  email         String   @unique
+  password      String
+  firstname     String
+  lastname      String
+  phoneNumber   String
+  role          Role     @default(USER)
+  createdAt     DateTime @default(now()) 
+  updatedAt     DateTime @updatedAt 
+  address       String
+  paymentMethod String
+  Card          Card[]
+  Order         Order[]
+
+  @@map("profile")
+}
+
+model Card {
+  id          Int           @id @default(autoincrement())
+  cardName    String 
+  collection  String
+  grade       String
+  qr          String
+  image       String
+  cardNumber  String
+  finish      String
+  marketPrice Float 
+  price       Float
+  gameTitleId Int
+  gameTitle   GameTitle     @relation(fields: [gameTitleId], references: [id], onDelete: Cascade)
+  userId      Int
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  CardOnOrder CardOnOrder[]
+
+  @@map("card")
+}
+
+model GameTitle {
+  id       Int    @id @default(autoincrement())
+  gameName String 
+  year     String
+  cards    Card[]
+
+  @@map("game_titles")
+}
+
+model CardOnOrder {
+  id      Int   @id @default(autoincrement())
+  cardId  Int
+  card    Card  @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  orderId Int
+  order   Order @relation(fields: [orderId], references: [orderId], onDelete: Cascade)
+
+  @@map("card_on_order")
+}
+
+model Order {
+  orderId       Int           @id @default(autoincrement())
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        Int
+  totalPrice    Float
+  createdDate   DateTime      @default(now())
+  soldDate      DateTime
+  paymentStatus String
+  cardsOnOrder  CardOnOrder[]
+
+  @@map("order")
+}
