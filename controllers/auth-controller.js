@@ -1,29 +1,98 @@
-const {z} = require("zod");
+const createError = require ("../utils/createError")
 
-exports.registerSchema = z.object({
-    email: z.string().email("Email is incorrect"),
-    password: z.string().min(6, "Password must be at least 6 characters"),
-    firstname: z.string().min(3, "Firstname must be at least 3 characters"),
-    lastname: z.string().min(3, "Lastname must be at least 3 characters"),
-    confirmPassword: z.string().min(3, "ConfirmPassword must be at least 3 characters")
-}).refine((data) => data.password === data.confirmPassword,{
-    message: "Password is not Matched",
-    path: "confirmPassword"
-})
+const prisma = require("../config/prisma")
+const bcrypt = require("bcryptjs")
+const jwt = require("jsonwebtoken")
+const { token } = require("morgan")
 
-exports.loginSchema = z.object({
-    email: z.string().email("Email is incorrect"),
-    password: z.string().min(6, "Password must be at least 6 characters")
-})
-
-exports.validateWithZod = (schema) => (req, res, next) => {
+exports.login =  async (req, res, next) => {
     try {
-        schema.parse(req.body);
-        next();
+        const{email, password} =req.body
+
+        const profile = await prisma.user.findFirst({
+            where: {
+                email: email
+            }
+        })
+        if(!profile) {
+            return createError(400, "Email is invalid")
+        }
+
+        const isMatch = await bcrypt.compare(password, profile.password)
+
+        if(!isMatch) {
+            return createError(400, "Password is invalid")
+        }
+
+        const payload = {
+            id: profile.id,
+            email: profile.email,
+            firstname: profile.firstname,
+            lastname: profile.lastname,
+            role: profile.role
+        }
+
+        const token = jwt.sign(payload, process.env.SECRET_KEY,{expiresIn: "30d"})
+
+        res.json({message: "login successful", token: token, payload: payload})
     } catch (error) {
-        const errMsg = error.errors.map((item) => item.message)
-        const errTxt = errMsg.join(",")
-        const mergeError = new Error(errTxt)
+        next(error)
+    }
+}
+
+exports.register = async(req, res, next) => {
+    try {
+        const {email, password, confirmPassword, firstname, lastname, dateOfBirth, address, gender} = req.body
+
+        const checkEmail = await prisma.user.findFirst({
+            where: {
+                email: email,
+                
+            }
+        })
+
+        if(checkEmail) {
+            return createError(400, "Email is already taken")
+        }
+
+        const hashedPassword = bcrypt.hashSync(password, 10)
+        
+        const profile = await prisma.user.create({
+            data: {
+                email: email,
+                password: hashedPassword,
+                confirmPassword: hashedPassword,
+                firstname: firstname,
+                lastname: lastname,
+                dateOfBirth: dateOfBirth,
+                gender: gender,
+                address: address,
+            }
+        })
+
+        res.json({message: "Register Successful"})
+    } catch (error) {
         next(error);
     }
+    
+};
+
+exports.currentUser= async (req, res, next) => {
+    try {
+        const { email }= req.user;
+        const profile = await prisma.user.findFirst({
+            where: { email: email },
+            select: {
+                id: true,
+                email: true,
+                role: true,
+            }
+        });
+        console.log(profile);
+
+        res.json({ result: profile});
+    } catch (error) {
+        next(error);
+    }
+    
 }

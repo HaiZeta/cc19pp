@@ -13,33 +13,36 @@ enum Role {
 }
 
 model User {
-  id            Int      @id @default(autoincrement())
-  email         String   @unique
-  password      String
-  firstname     String
-  lastname      String
-  phoneNumber   String
-  role          Role     @default(USER)
-  createdAt     DateTime @default(now()) 
-  updatedAt     DateTime @updatedAt 
-  address       String
-  paymentMethod String
-  Card          Card[]
-  Order         Order[]
+  id              Int      @id @default(autoincrement())
+  email           String   @unique
+  password        String
+  confirmPassword String
+  firstname       String
+  lastname        String
+  phoneNumber     String?
+  role            Role     @default(USER)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  address         String
+  paymentMethod   String?
+  gender          String
+  dateOfBirth     String
+  Card            Card[]
+  Order           Order[]
 
   @@map("profile")
 }
 
 model Card {
   id          Int           @id @default(autoincrement())
-  cardName    String 
+  cardName    String
   collection  String
   grade       String
   qr          String
   image       String
   cardNumber  String
   finish      String
-  marketPrice Float 
+  marketPrice Float
   price       Float
   gameTitleId Int
   gameTitle   GameTitle     @relation(fields: [gameTitleId], references: [id], onDelete: Cascade)
@@ -52,7 +55,7 @@ model Card {
 
 model GameTitle {
   id       Int    @id @default(autoincrement())
-  gameName String 
+  gameName String
   year     String
   cards    Card[]
 
@@ -60,11 +63,12 @@ model GameTitle {
 }
 
 model CardOnOrder {
-  id      Int   @id @default(autoincrement())
+  id      Int    @id @default(autoincrement())
   cardId  Int
-  card    Card  @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  card    Card   @relation(fields: [cardId], references: [id], onDelete: Cascade)
   orderId Int
-  order   Order @relation(fields: [orderId], references: [orderId], onDelete: Cascade)
+  order   Order  @relation(fields: [orderId], references: [orderId], onDelete: Cascade)
+  receipt String
 
   @@map("card_on_order")
 }
