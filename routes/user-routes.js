@@ -2,6 +2,8 @@ const express = require("express");
 const prisma = require("../config/prisma")
 const router = express.Router();
 
+// router.post("")
+
 router.get("/list-user", async(req, res, next) => {
     try {
         const users = await prisma.profile.findMany({
